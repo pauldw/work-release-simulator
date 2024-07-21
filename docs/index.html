@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Work Release Simulator</title>
+    <title>Multi-Project Simulator</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -76,11 +76,13 @@
 </head>
 <body>
 <div class="container">
-    <h1>Work Release Simulator</h1>
+    <h1>Multi-Project Simulator</h1>
     <h2>How much profit can you make in 1 year?</h2>
     <h2 id="totalProfit">Total Gross Profit: $0</h2>
     <h3 id="simulationTime">Simulation Time: 0 / 52 weeks</h3>
     <button id="startButton">Start New Project</button>
+    <h3 id="finalScore">You made $0.</h3>
+    <button id="restartButton">Try Again</button>
     <div id="projectsContainer"></div>
 </div>
 
@@ -89,16 +91,25 @@
     const projectsContainer = document.getElementById('projectsContainer');
     const totalProfitElement = document.getElementById('totalProfit');
     const simulationTimeElement = document.getElementById('simulationTime');
+    const finalScoreElement = document.getElementById('finalScore');
+    const restartButton = document.getElementById('restartButton');
     let projects = [];
     let intervalId;
     let totalProfit = 0;
     let simulationStartTime = null;
     const PROFIT_RATE = 1000; // $1000 per week
-    const UPDATE_INTERVAL = 100; // 0.05 seconds
+    const UPDATE_INTERVAL = 100; // 0.1 seconds
     const WEEKS_PER_SECOND = 1; // 1 second in real time = 1 week in simulation
     const SIMULATION_DURATION = 52; // 52 weeks (1 year)
 
     startButton.addEventListener('click', startNewProject);
+
+    finalScoreElement.hidden = true;
+
+    restartButton.hidden = true;
+    restartButton.addEventListener('click', function() {
+        location.reload();
+    })
 
     function startNewProject() {
         if (simulationStartTime === null) {
@@ -166,10 +177,13 @@
             clearInterval(intervalId);
             startButton.disabled = true;
             startButton.textContent = "Simulation Ended";
+            finalScoreElement.textContent = `You made ${formatCurrency(totalProfit)} out of a maximum $110,000.`
+            finalScoreElement.hidden = false;
+            restartButton.hidden = false;
             return;
         }
 
-        const baseIncrement = 2; // Reduced from 5 to 2 for smoother progress
+        const baseIncrement = 2; // Reduced from 5 to 1 for smoother progress
         const activeProjects = projects.filter(p => !p.completed);
         const slowdownFactor = activeProjects.length > 0 ? 1 / activeProjects.length : 1;
 
@@ -195,18 +209,27 @@
                     project.cancelButton.style.display = 'none';
                     project.completionTimeElement.textContent = `Completed in: ${project.completionTime.toFixed(1)} weeks`;
                     const costOfDelay = PROFIT_RATE * project.completionTime;
-                    project.costOfDelayElement.textContent = `Cost of Delay: $${Math.round(costOfDelay)}`;
+                    project.costOfDelayElement.textContent = `Cost of Delay: ${formatCurrency(costOfDelay)}`;
                 }
             }
 
             if (project.completed) {
                 project.profit += PROFIT_RATE * (UPDATE_INTERVAL / 1000) * WEEKS_PER_SECOND;
-                project.profitElement.textContent = `Gross Profit: $${Math.round(project.profit)}`;
+                project.profitElement.textContent = `Gross Profit: ${formatCurrency(project.profit)}`;
                 totalProfit += PROFIT_RATE * (UPDATE_INTERVAL / 1000) * WEEKS_PER_SECOND;
             }
         });
 
-        totalProfitElement.textContent = `Total Gross Profit: $${Math.round(totalProfit)}`;
+        totalProfitElement.textContent = `Total Gross Profit: ${formatCurrency(totalProfit)}`;
+    }
+
+    function formatCurrency(amount) {
+        return new Intl.NumberFormat('en-US', {
+            style: 'currency',
+            currency: 'USD',
+            minimumFractionDigits: 0,
+            maximumFractionDigits: 2
+        }).format(amount);
     }
 </script>
 </body>
