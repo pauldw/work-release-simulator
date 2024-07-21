@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Multi-Project Progress and Profit Simulator</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f0f0f0;
+        }
+        .container {
+            text-align: center;
+        }
+        #projectsContainer {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 10px;
+            margin-top: 20px;
+        }
+        .project {
+            width: 220px;
+            position: relative;
+            background-color: #fff;
+            padding: 10px;
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            font-size: 0.9em;
+        }
+        .project h3 {
+            margin: 0 0 10px 0;
+            font-size: 1em;
+        }
+        .progressBar {
+            width: 100%;
+            height: 20px;
+            background-color: #e0e0e0;
+            border-radius: 10px;
+            margin: 5px 0;
+            overflow: hidden;
+        }
+        .progress {
+            width: 0;
+            height: 100%;
+            background-color: #4CAF50;
+            transition: width 0.1s;
+        }
+        button {
+            padding: 8px 16px;
+            font-size: 14px;
+            cursor: pointer;
+            margin-bottom: 10px;
+        }
+        .cancelButton {
+            position: absolute;
+            right: 5px;
+            top: 5px;
+            background-color: #f44336;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            padding: 3px 6px;
+            font-size: 0.8em;
+            cursor: pointer;
+        }
+        p {
+            margin: 5px 0;
+        }
+        #simulationTime {
+            margin-bottom: 15px;
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <h1>Multi-Project Progress and Profit Simulator</h1>
+    <h2>How much profit can you make in 104 weeks?</h2>
+    <h2 id="totalProfit">Total Profit: $0</h2>
+    <h3 id="simulationTime">Simulation Time: 0 / 104 weeks</h3>
+    <button id="startButton">Start New Project</button>
+    <div id="projectsContainer"></div>
+</div>
+
+<script>
+    const startButton = document.getElementById('startButton');
+    const projectsContainer = document.getElementById('projectsContainer');
+    const totalProfitElement = document.getElementById('totalProfit');
+    const simulationTimeElement = document.getElementById('simulationTime');
+    let projects = [];
+    let intervalId;
+    let totalProfit = 0;
+    let simulationStartTime = null;
+    const PROFIT_RATE = 1000; // $1000 per week
+    const UPDATE_INTERVAL = 100; // 0.1 seconds
+    const WEEKS_PER_SECOND = 1; // 1 second in real time = 1 week in simulation
+    const SIMULATION_DURATION = 104; // 104 weeks (2 years)
+
+    startButton.addEventListener('click', startNewProject);
+
+    function startNewProject() {
+        if (simulationStartTime === null) {
+            simulationStartTime = Date.now();
+        }
+
+        const projectId = Date.now();
+        const projectDiv = document.createElement('div');
+        projectDiv.className = 'project';
+        projectDiv.innerHTML = `
+                <h3>Project ${projects.length + 1}</h3>
+                <div class="progressBar">
+                    <div class="progress"></div>
+                </div>
+                <p class="status">Progress: 0%</p>
+                <p class="rate">Rate: 0%/week</p>
+                <p class="time">Time: 0 weeks</p>
+                <p class="profit">Profit: $0</p>
+                <p class="completionTime"></p>
+                <p class="costOfDelay"></p>
+                <button class="cancelButton">X</button>
+            `;
+        projectsContainer.appendChild(projectDiv);
+
+        const project = {
+            id: projectId,
+            progress: 0,
+            element: projectDiv.querySelector('.progress'),
+            status: projectDiv.querySelector('.status'),
+            rateElement: projectDiv.querySelector('.rate'),
+            timeElement: projectDiv.querySelector('.time'),
+            profitElement: projectDiv.querySelector('.profit'),
+            completionTimeElement: projectDiv.querySelector('.completionTime'),
+            costOfDelayElement: projectDiv.querySelector('.costOfDelay'),
+            cancelButton: projectDiv.querySelector('.cancelButton'),
+            lastProgress: 0,
+            rate: 0,
+            startTime: Date.now(),
+            completionTime: null,
+            profit: 0,
+            completed: false
+        };
+
+        projects.push(project);
+
+        project.cancelButton.addEventListener('click', () => cancelProject(project));
+
+        if (!intervalId) {
+            intervalId = setInterval(updateProjects, UPDATE_INTERVAL);
+        }
+    }
+
+    function cancelProject(project) {
+        projects = projects.filter(p => p.id !== project.id);
+        project.cancelButton.parentElement.remove();
+    }
+
+    function updateProjects() {
+        if (simulationStartTime === null) return;
+
+        const simulationWeeksElapsed = ((Date.now() - simulationStartTime) / 1000) * WEEKS_PER_SECOND;
+        simulationTimeElement.textContent = `Simulation Time: ${simulationWeeksElapsed.toFixed(1)} / ${SIMULATION_DURATION} weeks`;
+
+        if (simulationWeeksElapsed >= SIMULATION_DURATION) {
+            clearInterval(intervalId);
+            startButton.disabled = true;
+            startButton.textContent = "Simulation Ended";
+            return;
+        }
+
+        const baseIncrement = 1; // Reduced from 5 to 1 for smoother progress
+        const activeProjects = projects.filter(p => !p.completed);
+        const slowdownFactor = activeProjects.length > 0 ? 1 / activeProjects.length : 1;
+
+        projects.forEach(project => {
+            const weeksElapsed = ((Date.now() - project.startTime) / 1000) * WEEKS_PER_SECOND;
+            project.timeElement.textContent = `Time: ${weeksElapsed.toFixed(1)} weeks`;
+
+            if (!project.completed) {
+                const increment = Math.random() * baseIncrement * slowdownFactor;
+                project.progress = Math.min(project.progress + increment, 100);
+                project.element.style.width = project.progress + '%';
+                project.status.textContent = `Progress: ${Math.round(project.progress)}%`;
+
+                project.rate = (project.progress - project.lastProgress) * (1000 / UPDATE_INTERVAL) * (7 / WEEKS_PER_SECOND);
+                project.rateElement.textContent = `Rate: ${project.rate.toFixed(2)}%/week`;
+                project.lastProgress = project.progress;
+
+                if (project.progress === 100) {
+                    project.completed = true;
+                    project.completionTime = weeksElapsed;
+                    project.status.textContent = 'Completed!';
+                    project.rateElement.textContent = 'Generating profit...';
+                    project.cancelButton.style.display = 'none';
+                    project.completionTimeElement.textContent = `Completed in: ${project.completionTime.toFixed(1)} weeks`;
+                    const costOfDelay = PROFIT_RATE * project.completionTime;
+                    project.costOfDelayElement.textContent = `Delay Cost: $${Math.round(costOfDelay)}`;
+                }
+            }
+
+            if (project.completed) {
+                project.profit += PROFIT_RATE * (UPDATE_INTERVAL / 1000) * WEEKS_PER_SECOND;
+                project.profitElement.textContent = `Profit: $${Math.round(project.profit)}`;
+                totalProfit += PROFIT_RATE * (UPDATE_INTERVAL / 1000) * WEEKS_PER_SECOND;
+            }
+        });
+
+        totalProfitElement.textContent = `Total Profit: $${Math.round(totalProfit)}`;
+    }
+</script>
+</body>
+</html>
