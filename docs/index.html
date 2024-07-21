@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Multi-Project Progress and Profit Simulator</title>
+    <title>Work Release Simulator</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -76,10 +76,10 @@
 </head>
 <body>
 <div class="container">
-    <h1>Multi-Project Progress and Profit Simulator</h1>
-    <h2>How much profit can you make in 104 weeks?</h2>
-    <h2 id="totalProfit">Total Profit: $0</h2>
-    <h3 id="simulationTime">Simulation Time: 0 / 104 weeks</h3>
+    <h1>Work Release Simulator</h1>
+    <h2>How much profit can you make in 1 year?</h2>
+    <h2 id="totalProfit">Total Gross Profit: $0</h2>
+    <h3 id="simulationTime">Simulation Time: 0 / 52 weeks</h3>
     <button id="startButton">Start New Project</button>
     <div id="projectsContainer"></div>
 </div>
@@ -94,9 +94,9 @@
     let totalProfit = 0;
     let simulationStartTime = null;
     const PROFIT_RATE = 1000; // $1000 per week
-    const UPDATE_INTERVAL = 100; // 0.1 seconds
+    const UPDATE_INTERVAL = 100; // 0.05 seconds
     const WEEKS_PER_SECOND = 1; // 1 second in real time = 1 week in simulation
-    const SIMULATION_DURATION = 104; // 104 weeks (2 years)
+    const SIMULATION_DURATION = 52; // 52 weeks (1 year)
 
     startButton.addEventListener('click', startNewProject);
 
@@ -114,9 +114,9 @@
                     <div class="progress"></div>
                 </div>
                 <p class="status">Progress: 0%</p>
-                <p class="rate">Rate: 0%/week</p>
-                <p class="time">Time: 0 weeks</p>
-                <p class="profit">Profit: $0</p>
+                <p class="rate">Rate: 0% / week</p>
+                <p class="time">Elapsed Time: 0 weeks</p>
+                <p class="profit">Gross Profit: $0</p>
                 <p class="completionTime"></p>
                 <p class="costOfDelay"></p>
                 <button class="cancelButton">X</button>
@@ -169,44 +169,44 @@
             return;
         }
 
-        const baseIncrement = 1; // Reduced from 5 to 1 for smoother progress
+        const baseIncrement = 2; // Reduced from 5 to 2 for smoother progress
         const activeProjects = projects.filter(p => !p.completed);
         const slowdownFactor = activeProjects.length > 0 ? 1 / activeProjects.length : 1;
 
         projects.forEach(project => {
             const weeksElapsed = ((Date.now() - project.startTime) / 1000) * WEEKS_PER_SECOND;
-            project.timeElement.textContent = `Time: ${weeksElapsed.toFixed(1)} weeks`;
+            project.timeElement.textContent = `Elapsed Time: ${weeksElapsed.toFixed(1)} weeks`;
 
             if (!project.completed) {
-                const increment = Math.random() * baseIncrement * slowdownFactor;
+                const increment = 0.5 * baseIncrement * slowdownFactor;
                 project.progress = Math.min(project.progress + increment, 100);
                 project.element.style.width = project.progress + '%';
                 project.status.textContent = `Progress: ${Math.round(project.progress)}%`;
 
-                project.rate = (project.progress - project.lastProgress) * (1000 / UPDATE_INTERVAL) * (7 / WEEKS_PER_SECOND);
-                project.rateElement.textContent = `Rate: ${project.rate.toFixed(2)}%/week`;
+                project.rate = (project.progress - project.lastProgress) * (1000 / UPDATE_INTERVAL);
+                project.rateElement.textContent = `Rate: ${project.rate.toFixed(2)}% / week`;
                 project.lastProgress = project.progress;
 
                 if (project.progress === 100) {
                     project.completed = true;
                     project.completionTime = weeksElapsed;
                     project.status.textContent = 'Completed!';
-                    project.rateElement.textContent = 'Generating profit...';
+                    project.rateElement.textContent = 'Generating gross profit...';
                     project.cancelButton.style.display = 'none';
                     project.completionTimeElement.textContent = `Completed in: ${project.completionTime.toFixed(1)} weeks`;
                     const costOfDelay = PROFIT_RATE * project.completionTime;
-                    project.costOfDelayElement.textContent = `Delay Cost: $${Math.round(costOfDelay)}`;
+                    project.costOfDelayElement.textContent = `Cost of Delay: $${Math.round(costOfDelay)}`;
                 }
             }
 
             if (project.completed) {
                 project.profit += PROFIT_RATE * (UPDATE_INTERVAL / 1000) * WEEKS_PER_SECOND;
-                project.profitElement.textContent = `Profit: $${Math.round(project.profit)}`;
+                project.profitElement.textContent = `Gross Profit: $${Math.round(project.profit)}`;
                 totalProfit += PROFIT_RATE * (UPDATE_INTERVAL / 1000) * WEEKS_PER_SECOND;
             }
         });
 
-        totalProfitElement.textContent = `Total Profit: $${Math.round(totalProfit)}`;
+        totalProfitElement.textContent = `Total Gross Profit: $${Math.round(totalProfit)}`;
     }
 </script>
 </body>
